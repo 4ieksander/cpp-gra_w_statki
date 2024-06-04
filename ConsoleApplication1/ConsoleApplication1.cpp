@@ -1,5 +1,7 @@
 ﻿#include <iostream>
-#include <random> //ostatecznie nie uzylem do niczego tej biblioteki.
+#include <cstdio> 
+
+
 using namespace std;
 
 
@@ -7,9 +9,9 @@ using namespace std;
 class Plansza {
 public:
 
-	int** plansza = new int* [szerokosc];	//plansza podstawowa, na ktorej sa generowane ponizsze 2 plansze
-	char** ukryta_plansza = new char* [szerokosc];	// plansza dla przeciwnika
-	char** widoczna_plansza = new char* [szerokosc];	//plansza dla gracza
+	int** plansza;	//plansza podstawowa, na ktorej sa generowane ponizsze 2 plansze
+	char** ukryta_plansza;	// plansza dla przeciwnika
+	char** widoczna_plansza;	//plansza dla gracza
 	int wysokosc;	//planszy
 	int szerokosc;	//planszy
 	void stworz();	//tworzenie planszy ( tablic dwuwymiarowych i przypisywanie im domyslnych wartosci ( 0 lub - )
@@ -23,6 +25,7 @@ public:
 	{
 		this->szerokosc = 10;
 		this->wysokosc = 10;
+		stworz();
 		printf("Plansza zostala stworzona\n");
 
 	}
@@ -30,10 +33,19 @@ public:
 	{
 		this->szerokosc = x;
 		this->wysokosc = y;
+		stworz();
 		printf("Plansza zostala stworzona\n");
 	}
 	virtual ~Plansza()
 	{
+		for (int i = 0; i < szerokosc; ++i) {
+			delete[] plansza[i];
+			delete[] ukryta_plansza[i];
+			delete[] widoczna_plansza[i];
+		}
+		delete[] plansza;
+		delete[] ukryta_plansza;
+		delete[] widoczna_plansza;
 		printf("Plansze zostaly usuniete\n");
 	};
 
@@ -46,6 +58,10 @@ private:
 	int* statki = new int[5];	// tablica przechowujaca ilosci poszczegolnych statkow
 public:
 	int pozostalo;	//liczba pozostalych statkow gracza 
+	int oddane_strzaly;
+	int trafione_strzaly;
+	int nietrafione_strzaly;
+
 	Plansza* p;		//tworzenie obiektu na klasie plansza
 	void pokaz() {	// pokazanie planszy w formacie liczbowym
 		p->pokaz('l');
@@ -53,6 +69,7 @@ public:
 	void pokaz_przeciwnikowi() {
 		p->przetworz_ukryta();
 		printf("\nPrzeciwnikowi pozostalo %d masztow sumujac wszystkie statki\n", pozostalo);
+		printf("Oddanych strzalow: %d | %d Celnych | %d Niecelnych\n\n", oddane_strzaly, trafione_strzaly, nietrafione_strzaly);
 		p->pokaz('p');
 	}
 	void pokaz_sobie()
@@ -98,22 +115,6 @@ public:
 };
 
 
-// nie mialem czasu dodac funkcji grania z kompuWtrem, po to zostawilem ta klase (wykorzystam ja w przyszlosci)
-class RandomGenerator {
-public:
-	RandomGenerator(int min, int max) : dist_(min, max) {}
-
-	int GenerateInt() {
-		cout << dist_(gen_) << endl;
-		return dist_(gen_);
-	}
-
-private:
-	mt19937 gen_{ random_device{}() };
-	uniform_int_distribution<> dist_;
-
-};
-
 
 //klasa odpowiedzialna za obsluge calej gry
 class Game {
@@ -145,7 +146,7 @@ public:
 		printf("Pieciomasztowych: ");
 		scanf_s("%d", &s5);
 		player1 = new Statki(szerokosc, wysokosc, s1, s2, s3, s4, s5);
-		player2 = new Statki(szerokosc, wysokosc, s1, s2, s3, s4, s5);
+ 		player2 = new Statki(szerokosc, wysokosc, s1, s2, s3, s4, s5);
 
 
 	}
@@ -170,34 +171,51 @@ public:
 };
 
 void Game::start() {
-//	player1 = new Statki(szerokosc, wysokosc, s1, s2, s3, s4, s5);
-//	player2 = new Statki(szerokosc, wysokosc, s1, s2, s3, s4, s5);
-	printf("\n\nPlansza gracza nr 1:\n");
-	player1->pokaz();
-	printf("Plansza gracza nr 2:\n");
-	player2->pokaz();
+	//	player1 = new Statki(szerokosc, wysokosc, s1, s2, s3, s4, s5);
+	//	player2 = new Statki(szerokosc, wysokosc, s1, s2, s3, s4, s5);
+	system("cls");
 	printf("Graczu numer 1, rozstaw swoje statki\n");
 	player1->rozstaw();
-	printf("\n\n\n\n\n\n\n\nGraczu numer 2, rozstaw swoje statki\n");
+	system("cls");
+	printf("Graczu numer 2, rozstaw swoje statki\n");
 	player2->rozstaw();
 	printf("\n");
 
 }
 
 void Game::graj() {
+	system("cls");
 	while (player1->pozostalo != 0)
 	{
-		printf("\n\n\nKolejka gracza nr 1");
+		printf("Kolejka gracza nr 1");
 		player2->pokaz_przeciwnikowi();
-		player2->strzelaj();
+		int result_2 = player2->strzelaj();
 		if (player2->pozostalo == 0)
 		{
 			printf("\n\nGracz numer 1 wygral!!!\n\n");
 			break;
 		}
-		printf("\n\n\nKolejka gracza nr 2");
+		system("cls");
+		if (result_2 == 0)
+		{
+			printf("Przeciwnik ostatnim strzalem nie wtrafil w zaden statek\n");
+		}
+		else if (result_2 == 1)
+		{
+			printf("Przeciwnik ostatnim strzalem wtrafil\n");
+		}
+		printf("Kolejka gracza nr 2");
 		player1->pokaz_przeciwnikowi();
-		player1->strzelaj();
+		int result_1 = player1->strzelaj();
+		system("cls");
+		if (result_1 == 0)
+		{
+			printf("Przeciwnik ostatnim strzalem spudlowal\n\n");
+		}
+		else if (result_1 == 1)
+		{
+			printf("Przeciwnik ostatnim strzalem wtrafil\n\n");
+		}
 	}
 	if (player1->pozostalo == 0)
 		printf("\n\nGracz numer 2 wygral!!!\n\n");
@@ -205,7 +223,9 @@ void Game::graj() {
 
 void Plansza::stworz()
 {
-
+	plansza = new int* [szerokosc];
+	ukryta_plansza = new char* [szerokosc];
+	widoczna_plansza = new char* [szerokosc];
 	//plansza bazowa (w formacie liczbowym) - w niej sa przechowywane dane planszy
 	for (int i = 0; i < szerokosc; i++)
 		this->plansza[i] = new int[wysokosc];
@@ -290,7 +310,7 @@ void Plansza::przetworz_widoczna()
 			if (this->plansza[i][j] == 1)
 				widoczna_plansza[i][j] = 'O';
 			if (this->plansza[i][j] == 2)
-				widoczna_plansza[i][j] = '2';	
+				widoczna_plansza[i][j] = '2';
 			if (this->plansza[i][j] == 3)
 				widoczna_plansza[i][j] = '3';
 			if (this->plansza[i][j] == 4)
@@ -355,26 +375,30 @@ int Statki::strzelaj()
 		sprawdz = p->sprawdz(x, y);
 		if (sprawdz == 8 || sprawdz == 6)
 			printf("Juz tu strzelales, sprobuj jeszcze raz\n");
-		if (sprawdz == 1) 
-			break; // 1 - statek
+		if (sprawdz == 1) // 1 - statek
+			break;
 	}
 	if (sprawdz == 1)
 	{
 		p->modyfikuj_plansze(x, y, 6);
 		pokaz_przeciwnikowi();
-		printf("\nWtrafiony!\n");
 		pozostalo--;
+		oddane_strzaly++;
+		trafione_strzaly++;
+		printf("Wtrafione!\n");
 		if (pozostalo != 0)
 			strzelaj();
+		return 1;
 	}
 	if (sprawdz == 0)
 	{
+		oddane_strzaly++;
+		nietrafione_strzaly++;
 		p->modyfikuj_plansze(x, y, 8);
 		pokaz_przeciwnikowi();
-		printf("\nPudlo!\n");
+		return 0;
 	}
-
-	return 0;
+	return 10;
 }
 
 // funkcja odpowiedzialna za rozstawianie wielomasztowcow (sprawdzanie czy nie ma konfliktow, statkow na drodze albo czy nie wychodzi poza plansze)
@@ -402,15 +426,15 @@ int Statki::wielomasztowiec(int x, int y, int m, char wybor)
 		case 'd':
 			Y++;
 			break;
-		}	
+		}
 		int result = p->sprawdz(X, Y);
 		if (result == 9)
 		{
-			return 9;
+			return 1;
 		}
 		if (result == 1)
 		{
-			printf("%d",X);
+			printf("%d", X);
 			printf("Wszedles na inny statek, wybierz inny kierunek\n");
 			return 1;
 		}
@@ -471,7 +495,7 @@ void Statki::rozstaw()
 				}
 
 				printf("udalo sie\n");
-				
+
 				//dodanie statkow do planszy i iteracja pozostalych statkow
 				m = s + 1;
 				int X = x;
@@ -501,23 +525,51 @@ void Statki::rozstaw()
 		}
 };
 
+void displayMenu() {
+	cout << "=================== Gra w Statki ===================" << endl;
+	cout << "1. Rozpocznij nowa gre" << endl;
+	cout << "2. Zasady gry" << endl;
+	cout << "3. Wyjscie" << endl;
+	cout << "Wybierz opcje: ";
+}
+void displayRules() {
+	cout << endl << "Zasady gry w Statki:" << endl;
+	cout << "- Gra polega na zatapianiu statkow." << endl;
+	cout << "- Gracz strzela, probujac trafic i zatopic statki." << endl;
+	printf("\nWyswietlanie planszy:\nX - trafiony\n* - nie trafiony, pudlo\n- pole zakryte\n");
+	cout << "===================================================" << endl << endl;
 
-
-
-int main()
-
-{	
-	
-	Game* game;
-
-	// konstruktor przypisujacy od razu wartosci do zmiennych, kolejno: 
-	// szerokosc planszy; wysokosc planszy; statki 1 masztowe; statki 2 masztowe; statki 3 masztowe; statki 4 masztowe; statki 5 masztowe;
-	//game = new Game(10, 10, 1, 1, 0, 2, 0);	
-
-	game = new Game();		// konstruktor ktory prosi uzytkownika o podanie rozmiaru planszy i ilosci statkow 
-	game->start();
-	game->graj();
-	delete game;
-	return 0;
 }
 
+int main() {
+	int choice;
+	while (true) {
+		Game* game;
+		displayMenu();
+		cin >> choice;
+		switch (choice) {
+		case 1:
+			system("cls"); // Czyszczenie konsoli
+			cout << "Rozpoczynanie nowej gry..." << endl;
+			game = new Game();		// konstruktor ktory prosi uzytkownika o podanie rozmiaru planszy i ilosci statkow 
+			// konstruktor przypisujacy od razu wartosci do zmiennych, kolejno: 
+			// szerokosc planszy; wysokosc planszy; statki 1 masztowe; statki 2 masztowe; statki 3 masztowe; statki 4 masztowe; statki 5 masztowe;
+			//game = new Game(10, 10, 1, 1, 0, 2, 0);	
+			game->start();
+			game->graj();
+			delete game;
+			break;
+		case 2:
+			system("cls"); // Czyszczenie konsoli
+			displayRules();
+			break;
+		case 3:
+			cout << "Wychodzenie z gry. Do zobaczenia!" << endl;
+			return 0;
+		default:
+			cout << "Nieprawidłowy wybór. Spróbuj ponownie." << endl;
+			break;
+		}
+	}
+	return 0;
+} 
